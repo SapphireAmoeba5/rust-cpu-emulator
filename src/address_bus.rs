@@ -2,6 +2,8 @@ use iset::IntervalMap;
 
 use crate::AddressBusDevice;
 
+use std::cmp::{max, min};
+
 pub struct AddressBus {
     entries: IntervalMap<u64, Box<dyn AddressBusDevice>>,
 }
@@ -29,17 +31,34 @@ impl AddressBus {
     }
 
     pub fn write(&mut self, src: &[u8], address: u64) {
-        for entry in self.entries.values_mut(address..address + src.len() as u64) {
-            entry.write(src, address, 0);
+        for (entry_location, entry) in self.entries.iter_mut(address..address + src.len() as u64) {
+            let start_address = max(entry_location.start.into(), address);
+            let end_address = min(entry_location.end, address + src.len() as u64);
+
+            let offset = start_address - entry_location.start;
+
+            entry.write(
+                &src[(start_address - address) as usize
+                    ..(start_address - address) as usize + (end_address - start_address) as usize],
+                address,
+                offset,
+            );
         }
     }
 
     pub fn read(&mut self, dest: &mut [u8], address: u64) {
-        for entry in self
-            .entries
-            .values_mut(address..address + dest.len() as u64)
-        {
-            entry.read(dest, address, 0);
+        for (entry_location, entry) in self.entries.iter_mut(address..address + dest.len() as u64) {
+            let start_address = max(entry_location.start.into(), address);
+            let end_address = min(entry_location.end, address + dest.len() as u64);
+
+            let offset = start_address - entry_location.start;
+
+            entry.read(
+                &mut dest[(start_address - address) as usize
+                    ..(start_address - address) as usize + (end_address - start_address) as usize],
+                address,
+                offset,
+            );
         }
     }
 }

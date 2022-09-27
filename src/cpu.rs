@@ -3,18 +3,18 @@ mod register_id;
 use super::address_bus::AddressBus;
 use register_id::RegisterId;
 
-use std::{fmt::Display, ops::Add};
+use std::{cell::RefCell, fmt::Display, ops::Add, rc::Rc};
 
-pub struct Cpu<'a> {
-    address_bus: &'a AddressBus,
+pub struct Cpu {
+    address_bus: Rc<RefCell<AddressBus>>,
 
     registers: [u64; 7],
 
     flags: u64,
 }
 
-impl<'a> Cpu<'_> {
-    pub fn new(address_bus: &AddressBus) -> Cpu {
+impl Cpu {
+    pub fn new(address_bus: Rc<RefCell<AddressBus>>) -> Cpu {
         Cpu {
             address_bus,
 
@@ -31,10 +31,11 @@ impl<'a> Cpu<'_> {
     }
 }
 
-impl<'a> Cpu<'_> {
+impl Cpu {
     fn fetch_byte(&mut self) -> u8 {
-        let byte: [u8; 1] = [0; 1];
+        let mut byte: [u8; 1] = [0; 1];
         self.address_bus
+            .borrow_mut()
             .read(&mut byte, self.register(RegisterId::Ip));
 
         *self.register_mut(RegisterId::Ip) += 1;
@@ -42,40 +43,52 @@ impl<'a> Cpu<'_> {
     }
 
     fn fetch_word(&mut self) -> u16 {
-        let start = self.registers[RegisterId::Ip as usize] as usize;
-        let end = (self.registers[RegisterId::Ip as usize] as usize) + 2;
+        let mut word_bytes = [0u8; 2];
+        self.address_bus
+            .borrow_mut()
+            .read(&mut word_bytes, self.register(RegisterId::Ip));
 
-        let word: u16 = u16::from_le_bytes(self.memory[start..end].try_into().unwrap());
         *self.register_mut(RegisterId::Ip) += 2;
-        word
+        u16::from_le_bytes(word_bytes)
     }
 
     fn fetch_dword(&mut self) -> u32 {
-        let start = self.register(RegisterId::Ip) as usize;
-        let end = (self.register(RegisterId::Ip) as usize) + 4;
+        let mut dword_bytes = [0u8; 4];
+        self.address_bus
+            .borrow_mut()
+            .read(&mut dword_bytes, self.register(RegisterId::Ip));
 
-        let dword = u32::from_le_bytes(self.memory[start..end].try_into().unwrap());
         *self.register_mut(RegisterId::Ip) += 4;
-        dword
+        u32::from_le_bytes(dword_bytes)
     }
 
     fn fetch_qword(&mut self) -> u64 {
-        let start = self.register(RegisterId::Ip) as usize;
-        let end = (self.register(RegisterId::Ip) as usize) + 8;
+        let mut qword_bytes = [0u8; 8];
+        self.address_bus
+            .borrow_mut()
+            .read(&mut qword_bytes, self.register(RegisterId::Ip));
 
-        let qword = u64::from_le_bytes(self.memory[start..end].try_into().unwrap());
         *self.register_mut(RegisterId::Ip) += 8;
-        qword
+        u64::from_le_bytes(qword_bytes)
+    }
+
+    // Wrapper functions to make reading and writing from the address more ergonomic
+    fn write(&mut self, src: &[u8], address: u64) {
+        self.address_bus.borrow_mut().write(src, address);
+    }
+
+    fn read(&mut self, dest: &mut [u8], address: u64) {
+        self.address_bus.borrow_mut().read(dest, address);
     }
 }
 
 impl Cpu {
     fn register(&self, id: RegisterId) -> u64 {
-        self.registers[id as usize]
+        self.registers[id as usize - 1]
     }
 
     fn register_mut(&mut self, id: RegisterId) -> &mut u64 {
-        &mut self.registers[id as usize]
+        &mut self.registers[id as usize - 1]
     }
 }
 

@@ -16,18 +16,17 @@ impl Memory {
 
 impl AddressBusDevice for Memory {
     fn write(&mut self, src: &[u8], address: u64, offset: u64) {
-        println!(
-            "Writing {} bytes to memory at address {:#x}",
-            src.len(),
-            address
+        self.memory.splice(
+            offset as usize..offset as usize + src.len(),
+            src.iter().cloned(),
         );
     }
 
     fn read(&mut self, dest: &mut [u8], address: u64, offset: u64) {
-        println!(
-            "Reading {} bytes from memory at address {:#x}",
-            dest.len(),
-            address
-        );
+        let len = dest.len();
+
+        dest.into_iter()
+            .zip(self.memory[offset as usize..offset as usize + len].iter())
+            .for_each(|(x, y)| *x = *y);
     }
 }
