@@ -1,6 +1,10 @@
+mod instruction_lookup;
 mod register_id;
 
+use self::instruction_lookup::{LookupEntry, LOOKUP_TABLE};
+
 use super::address_bus::AddressBus;
+use crate::debug_println;
 use register_id::RegisterId;
 
 use std::{cell::RefCell, fmt::Display, ops::Add, rc::Rc};
@@ -11,23 +15,44 @@ pub struct Cpu {
     registers: [u64; 7],
 
     flags: u64,
+    halted: bool,
 }
 
 impl Cpu {
     pub fn new(address_bus: Rc<RefCell<AddressBus>>) -> Cpu {
-        Cpu {
+        let mut cpu = Cpu {
             address_bus,
 
             registers: [0; 7],
 
             flags: 0,
-        }
+            halted: false,
+        };
+
+        cpu.reset();
+
+        cpu
     }
 
     pub fn clock(&mut self) {
-        let opcode = self.fetch_byte();
+        if !self.halted {
+            let opcode = self.fetch_byte();
+            self.execute_opcode(opcode);
+        }
+    }
 
-        self.execute_opcode(opcode);
+    pub fn reset(&mut self) {
+        let mut execution_start = [0u8; 8];
+        self.read(&mut execution_start, 0);
+
+        let execution_start = u64::from_le_bytes(execution_start);
+
+        *self.register_mut(RegisterId::Ip) = execution_start;
+        *self.register_mut(RegisterId::Sp) = 0xffff;
+    }
+
+    pub fn halted(&self) -> bool {
+        self.halted
     }
 }
 
@@ -72,7 +97,7 @@ impl Cpu {
         u64::from_le_bytes(qword_bytes)
     }
 
-    // Wrapper functions to make reading and writing from the address more ergonomic
+    // Wrapper functions to make reading and writing from the address gmore ergonomic
     fn write(&mut self, src: &[u8], address: u64) {
         self.address_bus.borrow_mut().write(src, address);
     }
@@ -94,6 +119,23 @@ impl Cpu {
 
 impl Cpu {
     fn execute_opcode(&mut self, opcode: u8) {
-        println!("Executing opcode: {}", opcode);
+        if let Some(callback) = LOOKUP_TABLE[opcode as usize].callback {
+            debug_println!(
+                "Executing instruction '{}'",
+                LOOKUP_TABLE[opcode as usize].instruction
+            );
+            callback(self);
+        } else {
+            debug_println!(
+                "Invalid instruction at {:#x}",
+                self.register(RegisterId::Ip) - 1
+            );
+        }
+    }
+}
+
+impl Cpu {
+    fn hlt(&mut self) {
+        self.halted = true;
     }
 }

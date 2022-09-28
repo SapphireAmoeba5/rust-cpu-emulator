@@ -1,5 +1,6 @@
 // use super::address_bus_device::
 
+use crate::debug_println;
 use crate::AddressBusDevice;
 
 pub struct Memory {
@@ -16,6 +17,7 @@ impl Memory {
 
 impl AddressBusDevice for Memory {
     fn write(&mut self, src: &[u8], address: u64, offset: u64) {
+        debug_println!("Writing to address {:#x}", address);
         self.memory.splice(
             offset as usize..offset as usize + src.len(),
             src.iter().cloned(),
@@ -23,6 +25,8 @@ impl AddressBusDevice for Memory {
     }
 
     fn read(&mut self, dest: &mut [u8], address: u64, offset: u64) {
+        debug_println!("Reading from address {:#x}", address);
+
         let len = dest.len();
 
         dest.into_iter()
