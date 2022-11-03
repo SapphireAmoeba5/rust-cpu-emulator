@@ -1,14 +1,17 @@
-use super::Cpu;
+use super::{Cpu, InstructionResult};
 
 use crate::lazy_static::lazy_static;
 
 pub struct LookupEntry {
     pub instruction: &'static str,
-    pub callback: Option<fn(&mut Cpu)>,
+    pub callback: Option<fn(&mut Cpu) -> InstructionResult>,
 }
 
 impl LookupEntry {
-    pub fn new(instruction: &'static str, callback: Option<fn(&mut Cpu)>) -> Self {
+    pub fn new(
+        instruction: &'static str,
+        callback: Option<fn(&mut Cpu) -> InstructionResult>,
+    ) -> Self {
         Self {
             instruction,
             callback,
@@ -17,15 +20,15 @@ impl LookupEntry {
 }
 lazy_static! {
     pub static ref LOOKUP_TABLE: [LookupEntry; 256] = [
-        LookupEntry::new("HLT", Some(Cpu::hlt)), // 0x00
-        LookupEntry::new("XXX", None), // 0x01
+        LookupEntry::new("HLT", Some(Cpu::HLT)), // 0x00
+        LookupEntry::new("MOV", Some(Cpu::MOV)), // 0x01
         LookupEntry::new("XXX", None), //0x02
-        LookupEntry::new("XXX", None), //0x03
-        LookupEntry::new("XXX", None), //0x04
-        LookupEntry::new("XXX", None), //0x05
-        LookupEntry::new("XXX", None), //0x06
+        LookupEntry::new("ADD", Some(Cpu::ADD)), //0x03
+        LookupEntry::new("OR", Some(Cpu::OR)), //0x04
+        LookupEntry::new("JMP", Some(Cpu::JMP)), //0x05
+        LookupEntry::new("CALL", Some(Cpu::CALL)), //0x06
         LookupEntry::new("XXX", None), //0x07
-        LookupEntry::new("XXX", None), //0x08
+        LookupEntry::new("LIDT", Some(Cpu::LIDT)), //0x08
         LookupEntry::new("XXX", None), //0x09
         LookupEntry::new("XXX", None), //0x0a
         LookupEntry::new("XXX", None), //0x0b
@@ -33,31 +36,31 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0x0d
         LookupEntry::new("XXX", None), //0x0e
         LookupEntry::new("XXX", None), //0x0f
-        LookupEntry::new("XXX", None), //0x10
-        LookupEntry::new("XXX", None), //0x11
+        LookupEntry::new("IN", Some(Cpu::IN)), //0x10
+        LookupEntry::new("CMP", Some(Cpu::CMP)), //0x11
         LookupEntry::new("XXX", None), //0x12
-        LookupEntry::new("XXX", None),  //0x13
-        LookupEntry::new("XXX", None),  //0x14
-        LookupEntry::new("XXX", None),  //0x15
-        LookupEntry::new("XXX", None), //0x16
+        LookupEntry::new("SUB", Some(Cpu::SUB)), //0x13
+        LookupEntry::new("XOR", Some(Cpu::XOR)), //0x14
+        LookupEntry::new("JZ", Some(Cpu::JZ)), //0x15
+        LookupEntry::new("RET", Some(Cpu::RET)), //0x16
         LookupEntry::new("XXX", None), //0x17
-        LookupEntry::new("XXX", None), //0x18
+        LookupEntry::new("INT", Some(Cpu::INT)), //0x18
         LookupEntry::new("XXX", None), //0x19
         LookupEntry::new("XXX", None), //0x1a
         LookupEntry::new("XXX", None), //0x1b
-        LookupEntry::new("XXX", None),  //0x1c
-        LookupEntry::new("XXX", None),  //0x1d
-        LookupEntry::new("XXX", None),  //0x1e
-        LookupEntry::new("XXX", None),  //0x1f
-        LookupEntry::new("XXX", None), //0x20
-        LookupEntry::new("XXX", None),  //0x21
+        LookupEntry::new("XXX", None), //0x1c
+        LookupEntry::new("XXX", None), //0x1d
+        LookupEntry::new("XXX", None), //0x1e
+        LookupEntry::new("XXX", None), //0x1f
+        LookupEntry::new("OUT", Some(Cpu::OUT)), //0x20
+        LookupEntry::new("PUSH", Some(Cpu::PUSH)), //0x21
         LookupEntry::new("XXX", None), //0x22
-        LookupEntry::new("XXX", None), //0x23
-        LookupEntry::new("XXX", None), //0x24
-        LookupEntry::new("XXX", None), //0x25
+        LookupEntry::new("MUL", Some(Cpu::MUL)), //0x23
+        LookupEntry::new("AND", Some(Cpu::AND)), //0x24
+        LookupEntry::new("JNZ", Some(Cpu::JNZ)), //0x25
         LookupEntry::new("XXX", None), //0x26
         LookupEntry::new("XXX", None), //0x27
-        LookupEntry::new("XXX", None), //0x28
+        LookupEntry::new("RETI", Some(Cpu::RETI)), //0x28
         LookupEntry::new("XXX", None), //0x29
         LookupEntry::new("XXX", None), //0x2a
         LookupEntry::new("XXX", None), //0x2b
@@ -66,14 +69,14 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0x2e
         LookupEntry::new("XXX", None), //0x2f
         LookupEntry::new("XXX", None), //0x30
-        LookupEntry::new("XXX", None), //0x31
+        LookupEntry::new("POP", Some(Cpu::POP)), //0x31
         LookupEntry::new("XXX", None), //0x32
-        LookupEntry::new("XXX", None), //0x33
-        LookupEntry::new("XXX", None), //0x34
-        LookupEntry::new("XXX", None), //0x35
+        LookupEntry::new("DIV", Some(Cpu::DIV)), //0x33
+        LookupEntry::new("NOT", Some(Cpu::NOT)), //0x34
+        LookupEntry::new("JO", Some(Cpu::JO)), //0x35
         LookupEntry::new("XXX", None), //0x36
         LookupEntry::new("XXX", None), //0x37
-        LookupEntry::new("XXX", None), //0x38
+        LookupEntry::new("CLI", Some(Cpu::CLI)), //0x38
         LookupEntry::new("XXX", None), //0x39
         LookupEntry::new("XXX", None), //0x3a
         LookupEntry::new("XXX", None), //0x3b
@@ -82,14 +85,14 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0x3e
         LookupEntry::new("XXX", None), //0x3f
         LookupEntry::new("XXX", None), //0x40
-        LookupEntry::new("XXX", None), //0x41
+        LookupEntry::new("STR", Some(Cpu::STR)), //0x41
         LookupEntry::new("XXX", None), //0x42
         LookupEntry::new("XXX", None), //0x43
-        LookupEntry::new("XXX", None), //0x44
-        LookupEntry::new("XXX", None), //0x45
+        LookupEntry::new("NEG", Some(Cpu::NEG)), //0x44
+        LookupEntry::new("JNO", Some(Cpu::JNO)), //0x45
         LookupEntry::new("XXX", None), //0x46
         LookupEntry::new("XXX", None), //0x47
-        LookupEntry::new("XXX", None), //0x48
+        LookupEntry::new("STI", Some(Cpu::STI)), //0x48
         LookupEntry::new("XXX", None), //0x49
         LookupEntry::new("XXX", None), //0x4a
         LookupEntry::new("XXX", None), //0x4b
@@ -98,11 +101,11 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0x4e
         LookupEntry::new("XXX", None), //0x4f
         LookupEntry::new("XXX", None), //0x50
-        LookupEntry::new("XXX", None), //0x51
+        LookupEntry::new("LDR", Some(Cpu::LDR)), //0x51
         LookupEntry::new("XXX", None), //0x52
         LookupEntry::new("XXX", None), //0x53
         LookupEntry::new("XXX", None), //0x54
-        LookupEntry::new("XXX", None), //0x55
+        LookupEntry::new("JS", Some(Cpu::JS)), //0x55
         LookupEntry::new("XXX", None), //0x56
         LookupEntry::new("XXX", None), //0x57
         LookupEntry::new("XXX", None), //0x58
@@ -114,11 +117,11 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0x5e
         LookupEntry::new("XXX", None), //0x5f
         LookupEntry::new("XXX", None), //0x60
-        LookupEntry::new("XXX", None), //0x61
+        LookupEntry::new("LEA", Some(Cpu::LEA)), //0x61
         LookupEntry::new("XXX", None), //0x62
         LookupEntry::new("XXX", None), //0x63
         LookupEntry::new("XXX", None), //0x64
-        LookupEntry::new("XXX", None), //0x65
+        LookupEntry::new("JNS", Some(Cpu::JNS)), //0x65
         LookupEntry::new("XXX", None), //0x66
         LookupEntry::new("XXX", None), //0x67
         LookupEntry::new("XXX", None), //0x68
@@ -130,11 +133,11 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0x6e
         LookupEntry::new("XXX", None), //0x6f
         LookupEntry::new("XXX", None), //0x70
-        LookupEntry::new("XXX", None), //0x71
+        LookupEntry::new("PUSHF", Some(Cpu::PUSHF)), //0x71
         LookupEntry::new("XXX", None), //0x72
         LookupEntry::new("XXX", None), //0x73
         LookupEntry::new("XXX", None), //0x74
-        LookupEntry::new("XXX", None), //0x75
+        LookupEntry::new("JC", Some(Cpu::JC)), //0x75
         LookupEntry::new("XXX", None), //0x76
         LookupEntry::new("XXX", None), //0x77
         LookupEntry::new("XXX", None), //0x78
@@ -146,11 +149,11 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0x7e
         LookupEntry::new("XXX", None), //0x7f
         LookupEntry::new("XXX", None), //0x80
-        LookupEntry::new("XXX", None), //0x81
+        LookupEntry::new("POPF", Some(Cpu::POPF)), //0x81
         LookupEntry::new("XXX", None), //0x82
         LookupEntry::new("XXX", None), //0x83
         LookupEntry::new("XXX", None), //0x84
-        LookupEntry::new("XXX", None), //0x85
+        LookupEntry::new("JNC", Some(Cpu::JNC)), //0x85
         LookupEntry::new("XXX", None), //0x86
         LookupEntry::new("XXX", None), //0x87
         LookupEntry::new("XXX", None), //0x88
@@ -161,12 +164,12 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0x8d
         LookupEntry::new("XXX", None), //0x8e
         LookupEntry::new("XXX", None), //0x8f
-        LookupEntry::new("XXX", None), //0x90
+        LookupEntry::new("NOP", Some(Cpu::NOP)), //0x90
         LookupEntry::new("XXX", None), //0x91
         LookupEntry::new("XXX", None), //0x92
         LookupEntry::new("XXX", None), //0x93
         LookupEntry::new("XXX", None), //0x94
-        LookupEntry::new("XXX", None), //0x95
+        LookupEntry::new("JBE", Some(Cpu::JBE)), //0x95
         LookupEntry::new("XXX", None), //0x96
         LookupEntry::new("XXX", None), //0x97
         LookupEntry::new("XXX", None), //0x98
@@ -182,7 +185,7 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0xa2
         LookupEntry::new("XXX", None), //0xa3
         LookupEntry::new("XXX", None), //0xa4
-        LookupEntry::new("XXX", None), //0xa5
+        LookupEntry::new("JA", Some(Cpu::JA)), //0xa5
         LookupEntry::new("XXX", None), //0xa6
         LookupEntry::new("XXX", None), //0xa7
         LookupEntry::new("XXX", None), //0xa8
@@ -198,7 +201,7 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0xb2
         LookupEntry::new("XXX", None), //0xb3
         LookupEntry::new("XXX", None), //0xb4
-        LookupEntry::new("XXX", None), //0xb5
+        LookupEntry::new("JL", Some(Cpu::JL)), //0xb5
         LookupEntry::new("XXX", None), //0xb6
         LookupEntry::new("XXX", None), //0xb7
         LookupEntry::new("XXX", None), //0xb8
@@ -214,7 +217,7 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0xc2
         LookupEntry::new("XXX", None), //0xc3
         LookupEntry::new("XXX", None), //0xc4
-        LookupEntry::new("XXX", None), //0xc5
+        LookupEntry::new("JGE", Some(Cpu::JGE)), //0xc5
         LookupEntry::new("XXX", None), //0xc6
         LookupEntry::new("XXX", None), //0xc7
         LookupEntry::new("XXX", None), //0xc8
@@ -230,7 +233,7 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0xd2
         LookupEntry::new("XXX", None), //0xd3
         LookupEntry::new("XXX", None), //0xd4
-        LookupEntry::new("XXX", None), //0xd5
+        LookupEntry::new("JLE", Some(Cpu::JLE)), //0xd5
         LookupEntry::new("XXX", None), //0xd6
         LookupEntry::new("XXX", None), //0xd7
         LookupEntry::new("XXX", None), //0xd8
@@ -246,7 +249,7 @@ lazy_static! {
         LookupEntry::new("XXX", None), //0xe2
         LookupEntry::new("XXX", None), //0xe3
         LookupEntry::new("XXX", None), //0xe4
-        LookupEntry::new("XXX", None), //0xe5
+        LookupEntry::new("JG", Some(Cpu::JG)), //0xe5
         LookupEntry::new("XXX", None), //0xe6
         LookupEntry::new("XXX", None), //0xe7
         LookupEntry::new("XXX", None), //0xe8
