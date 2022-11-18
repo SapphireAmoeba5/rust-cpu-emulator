@@ -11,3 +11,6 @@ num-derive = "0.2"
 iset = "0.1.1"
 clap = { version = "3.2.22", features = ["derive"] }
 lazy_static = "1.4.0"
+libloading = "0.7"
+libc = "0.2.137"
+path-absolutize = "3.0.14"

@@ -99,13 +99,16 @@ fn get_effective_address(cpu: &mut Cpu) -> u64 {
         0
     };
 
-    let address = base_value + index_value + const_offset;
+    let address = base_value
+        .wrapping_add(index_value)
+        .wrapping_add(const_offset);
 
     debug_println!("Parsed address: {:#x}", address);
 
     address
 }
 
+#[allow(non_snake_case)]
 impl Cpu {
     pub(super) fn HLT(&mut self) -> InstructionResult {
         debug_println!("X0:       {} ({0:#x})", self.register(RegisterId::X0));

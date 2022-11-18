@@ -14,7 +14,7 @@ use register_id::RegisterId;
 use reserved_idt_entries::*;
 use size::Size;
 
-use std::{cell::RefCell, fmt::Display, ops::Add, rc::Rc};
+use std::{cell::RefCell, fmt::Display, ops::Add, rc::Rc, time::Duration};
 
 #[derive(Debug, Clone, Copy)]
 enum CpuFlag {
@@ -62,6 +62,11 @@ impl Cpu {
     }
 
     pub fn reset(&mut self) {
+        println!("Resetting CPU!");
+        #[cfg(debug_assertions)]
+        std::thread::sleep(Duration::from_secs_f32(1.0));
+
+        // The first 8 bytes in memory is the address the CPU will start executing code
         let mut execution_start = [0u8; 8];
         self.read(&mut execution_start, 0);
 
@@ -299,7 +304,8 @@ impl Cpu {
             }
         } else {
             debug_println!(
-                "Invalid instruction at {:#x}",
+                "Invalid instruction {:#x} at {:#x}",
+                opcode,
                 self.register(RegisterId::Ip) - 1
             );
             self.non_maskable_interrupt_request(INVALID_INSTRUCTION);
@@ -309,7 +315,7 @@ impl Cpu {
 
 impl Cpu {
     fn interrupt_request(&mut self, idt_entry: u8) {
-        debug_println!("Interrupt request recieved");
+        debug_println!("Interrupt request recieved for entry {}", idt_entry);
 
         if self.get_flag(CpuFlag::InterruptEnable) == true {
             self.interrupt_handler(idt_entry);
@@ -319,11 +325,36 @@ impl Cpu {
     }
 
     fn non_maskable_interrupt_request(&mut self, idt_entry: u8) {
-        debug_println!("Non maskable interrupt request recieved");
+        debug_println!(
+            "Non maskable interrupt request recieved for entry {}",
+            idt_entry
+        );
         self.interrupt_handler(idt_entry);
     }
 
     fn interrupt_handler(&mut self, idt_entry: u8) {
-        todo!("Interrupt handler");
+        let sizeof_idt_entry: u64 = 8;
+
+        if self.idt != 0 {
+            let idt_entry_address = self.idt + (idt_entry as u64 * sizeof_idt_entry);
+
+            let mut handler_address = [0u8; 8];
+            self.read(&mut handler_address, idt_entry_address);
+
+            let handler_address = u64::from_le_bytes(handler_address);
+
+            if handler_address != 0 {
+                self.push_flags();
+                self.push_qword(self.register(RegisterId::Ip));
+
+                self.register_assign(RegisterId::Ip, handler_address);
+            } else {
+                debug_println!("Invalid entry at IDT entry {}", idt_entry);
+                self.reset();
+            }
+        } else {
+            debug_println!("IDT not defined");
+            self.reset();
+        }
     }
 }
