@@ -62,7 +62,7 @@ impl Cpu {
     }
 
     pub fn reset(&mut self) {
-        println!("Resetting CPU!");
+        debug_println!("Resetting CPU!");
         #[cfg(debug_assertions)]
         std::thread::sleep(Duration::from_secs_f32(1.0));
 

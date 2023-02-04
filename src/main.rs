@@ -13,6 +13,7 @@ mod port_bus_device;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 use address_bus::AddressBus;
 use address_bus_device::AddressBusDevice;
@@ -41,7 +42,7 @@ fn load_file(file: &str, address_bus: &mut AddressBus) -> Result<(), ()> {
 
     // The first 8 bytes of the file contains the entry point,
     // but the cpu also reads the first 8 bytes of memory to get the entry point
-    // so we can convienently just write the file as is to memory from address 0
+    // so we can convienently just write the file as-is to memory at address 0
     address_bus.write(&data, 0);
 
     // let entry_point = u64::from_le_bytes(data[0..8].try_into().unwrap());
@@ -65,7 +66,7 @@ fn main() -> Result<(), ()> {
         println!("No config file found. Using default configuration");
 
         let memory_size: u64 = 0xa0000;
-        let mut memory = Memory::new(memory_size);
+        let memory = Memory::new(memory_size);
 
         address_bus
             .borrow_mut()
@@ -81,7 +82,7 @@ fn main() -> Result<(), ()> {
         cpu.clock();
 
         if !cpu.halted() {
-            println!();
+            debug_println!("");
         }
     }
 }

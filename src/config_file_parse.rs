@@ -106,7 +106,7 @@ impl Config {
             }
         };
 
-        env::set_current_dir(config_path.as_ref().parent().unwrap())
+        env::set_current_dir(config_path.as_ref().absolutize().unwrap().parent().unwrap())
             .expect("Error changing working directory");
 
         let this = Self::parse_config(config)?;
